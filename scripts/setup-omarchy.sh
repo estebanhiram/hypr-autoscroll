@@ -254,8 +254,16 @@ if ! repository_is_installed "$list_output"; then
         fail "hyprpm could not install the plugin; run 'hyprpm update' and retry"
     fi
     hyprpm enable "$PLUGIN_NAME"
-elif ! plugin_is_enabled "$list_output"; then
-    hyprpm enable "$PLUGIN_NAME"
+else
+    if ! hyprpm update; then
+        hyprpm reload >/dev/null 2>&1 || true
+        fail "hyprpm could not update the installed plugin; fix its cache permissions and retry"
+    fi
+
+    list_output="$(hyprpm list 2>/dev/null || true)"
+    if ! plugin_is_enabled "$list_output"; then
+        hyprpm enable "$PLUGIN_NAME"
+    fi
 fi
 
 if [[ -f "$MODULE_CONFIG" ]]; then

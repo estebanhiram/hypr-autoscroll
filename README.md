@@ -62,7 +62,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/estebanhiram/hypr-autoscroll
 The script verifies that Omarchy Quattro is installed, keeps Hyprland changes
 under `~/.config/hypr/`, and installs the shell widget through Omarchy's plugin
 commands. It creates backups before changing existing files, refuses
-conflicting shortcuts or unmanaged configuration, and can be safely run again.
+conflicting shortcuts or unmanaged configuration, and updates an existing
+hyprpm installation when run again.
 Review [`setup-omarchy.sh`](scripts/setup-omarchy.sh) before running it if
 desired.
 

@@ -58,6 +58,9 @@ case "${1:-}" in
     remove)
         rm -f "${MOCK_STATE}/installed"
         ;;
+    update)
+        [[ -e "${MOCK_STATE}/installed" ]] || exit 2
+        ;;
     reload) ;;
     *) exit 2 ;;
 esac
@@ -174,6 +177,8 @@ grep -Fq 'local autoscroll_shortcut = "SUPER + ALT + S"' "$module" ||
     fail "rerun attempted to add repository again"
 [[ "$(grep -Fc 'hyprpm enable ' "$MOCK_LOG")" -eq 1 ]] ||
     fail "rerun attempted to enable plugin again"
+[[ "$(grep -Fc 'hyprpm update' "$MOCK_LOG")" -eq 1 ]] ||
+    fail "rerun did not update the installed plugin"
 [[ "$(grep -Fc 'omarchy plugin add ' "$MOCK_LOG")" -eq 1 ]] ||
     fail "rerun attempted to add shell plugin again"
 [[ "$(grep -Fc 'omarchy plugin update ' "$MOCK_LOG")" -eq 1 ]] ||
