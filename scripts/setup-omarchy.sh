@@ -2,8 +2,9 @@
 
 set -euo pipefail
 
-readonly REPOSITORY_URL="https://github.com/estebanhiramramirezgomez/hypr-autoscroll"
+readonly REPOSITORY_URL="https://github.com/estebanhiram/hypr-autoscroll"
 readonly PLUGIN_NAME="hypr-autoscroll"
+readonly MINIMUM_OMARCHY_MAJOR=4
 readonly CONFIG_ROOT="${HOME}/.config/hypr"
 readonly MAIN_CONFIG="${CONFIG_ROOT}/hyprland.lua"
 readonly MODULE_CONFIG="${CONFIG_ROOT}/autoscroll.lua"
@@ -27,8 +28,9 @@ Usage:
   setup-omarchy.sh [--shortcut "SUPER + A"]
   setup-omarchy.sh --uninstall
 
-Installs and configures hypr-autoscroll for Omarchy. Running the setup again
-updates the managed configuration without duplicating it.
+Installs and configures hypr-autoscroll for Omarchy Quattro (version 4 or
+newer). Running the setup again updates the managed configuration without
+duplicating it.
 EOF
 }
 
@@ -58,13 +60,23 @@ while (($# > 0)); do
     esac
 done
 
-[[ -f "$MAIN_CONFIG" ]] || fail "Omarchy Lua configuration not found at ${MAIN_CONFIG}"
-grep -Fq 'require("default.hypr.omarchy")' "$MAIN_CONFIG" ||
-    fail "${MAIN_CONFIG} does not look like an Omarchy Lua configuration"
-
 for command in hyprpm hyprctl omarchy; do
     command -v "$command" >/dev/null 2>&1 || fail "required command not found: ${command}"
 done
+
+omarchy_version="$(omarchy version 2>/dev/null)" || fail "could not determine the Omarchy version"
+if [[ "$omarchy_version" =~ ([0-9]+)\. ]]; then
+    omarchy_major=$((10#${BASH_REMATCH[1]}))
+else
+    fail "could not parse Omarchy version: ${omarchy_version}"
+fi
+
+((omarchy_major >= MINIMUM_OMARCHY_MAJOR)) ||
+    fail "Omarchy Quattro (version 4 or newer) is required; found ${omarchy_version}"
+
+[[ -f "$MAIN_CONFIG" ]] || fail "Omarchy Quattro configuration not found at ${MAIN_CONFIG}"
+grep -Fq 'require("default.hypr.omarchy")' "$MAIN_CONFIG" ||
+    fail "${MAIN_CONFIG} does not load the Omarchy Quattro Hyprland defaults"
 
 timestamp="$(date +%Y%m%d%H%M%S)-$$"
 

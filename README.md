@@ -33,18 +33,19 @@ Buy me a coffee. https://donate.stripe.com/aFa6oIgw87pIbtk7FVe3e03
 
 - Hyprland with plugin support
 - `hyprpm` for the recommended managed installation
+- Omarchy Quattro (version 4 or newer) for the automatic Omarchy setup
 - A C++23 compiler, Make, and Hyprland headers for manual installation
 
-Hyprland 0.55.2 and 0.56.0 are currently verified. Other releases may require
-a matching plugin revision because Hyprland does not guarantee plugin ABI
-compatibility.
+Omarchy 4.0.2 with Hyprland 0.56.2 is currently verified, along with standalone
+Hyprland 0.55.2 and 0.56.0. Other Hyprland releases may require a matching
+plugin revision because Hyprland does not guarantee plugin ABI compatibility.
 
 ## Install with hyprpm
 
-### Automatic Omarchy setup
+### Automatic Omarchy Quattro setup
 
-Omarchy users can install the plugin, configure startup loading, and register
-a shortcut with one command:
+Omarchy Quattro users can install the plugin, configure startup loading, and
+register an Omarchy-native shortcut with one command:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/estebanhiram/hypr-autoscroll/main/scripts/setup-omarchy.sh)
@@ -57,10 +58,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/estebanhiram/hypr-autoscroll
   --shortcut "SUPER + ALT + A"
 ```
 
-The script limits its direct configuration changes to `~/.config/hypr/`,
-creates backups before changing existing files, refuses conflicting shortcuts
-or unmanaged configuration, and can be safely run again. Review
-[`setup-omarchy.sh`](scripts/setup-omarchy.sh) before running it if desired.
+The script verifies that Omarchy Quattro is installed, limits its direct
+configuration changes to `~/.config/hypr/`, creates backups before changing
+existing files, refuses conflicting shortcuts or unmanaged configuration, and
+can be safely run again. Review [`setup-omarchy.sh`](scripts/setup-omarchy.sh)
+before running it if desired.
 
 To remove the managed configuration and plugin:
 
@@ -184,8 +186,8 @@ end)
 ```
 
 The description makes the shortcut appear in Omarchy's keybindings menu. Keep
-customizations under `~/.config/hypr/`; files under
-`~/.local/share/omarchy/` are managed by Omarchy.
+customizations under `~/.config/hypr/`; files under `/usr/share/omarchy/` are
+managed by Omarchy and must not be edited directly.
 
 ### Legacy Hyprland configuration
 

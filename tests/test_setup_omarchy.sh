@@ -82,11 +82,15 @@ set -euo pipefail
 
 printf 'omarchy %s\n' "$*" >>"${MOCK_LOG}"
 
-if [[ "${1:-}" == "menu" && "${2:-}" == "keybindings" && "${3:-}" == "--print" ]]; then
-    exit 0
-fi
-
-exit 2
+case "${1:-}" in
+    version)
+        printf '%s\n' "${MOCK_OMARCHY_VERSION}"
+        ;;
+    menu)
+        [[ "${2:-}" == "keybindings" && "${3:-}" == "--print" ]] || exit 2
+        ;;
+    *) exit 2 ;;
+esac
 EOF
 
 chmod +x "$MOCK_BIN/hyprpm" "$MOCK_BIN/hyprctl" "$MOCK_BIN/omarchy"
@@ -96,8 +100,14 @@ run_setup() {
         PATH="${MOCK_BIN}:${PATH}" \
         MOCK_LOG="$MOCK_LOG" \
         MOCK_STATE="$MOCK_STATE" \
+        MOCK_OMARCHY_VERSION="${MOCK_OMARCHY_VERSION:-4.0.2-1}" \
         bash "$PROJECT_ROOT/scripts/setup-omarchy.sh" "$@"
 }
+
+if MOCK_OMARCHY_VERSION="3.8.4-1" run_setup 2>/dev/null; then
+    fail "pre-Quattro Omarchy version was accepted"
+fi
+[[ ! -e "$MOCK_STATE/installed" ]] || fail "version check happened after plugin installation"
 
 run_setup --shortcut "SUPER + ALT + A"
 
@@ -113,6 +123,8 @@ grep -Fq 'hl.exec_cmd("hyprpm reload")' "$module" ||
     fail "module require was not added exactly once"
 [[ -e "$MOCK_STATE/installed" && -e "$MOCK_STATE/enabled" ]] ||
     fail "plugin was not installed and enabled"
+grep -Fq 'hyprpm add https://github.com/estebanhiram/hypr-autoscroll' "$MOCK_LOG" ||
+    fail "canonical GitHub repository was not installed"
 
 run_setup --shortcut "SUPER + ALT + S"
 
