@@ -18,16 +18,18 @@ all: $(PLUGIN)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(PLUGIN): src/main.cpp src/button_state.hpp src/scroll_math.hpp | $(BUILD_DIR)
+$(PLUGIN): src/main.cpp src/button_state.hpp src/control.hpp src/scroll_math.hpp | $(BUILD_DIR)
 	$(CXX) $(COMMON_FLAGS) $(PLUGIN_FLAGS) $(CXXFLAGS) $(HYPR_CFLAGS) \
 		src/main.cpp -o $(PLUGIN) $(LDFLAGS)
 
-$(TEST): tests/test_scroll_math.cpp src/button_state.hpp src/scroll_math.hpp | $(BUILD_DIR)
+$(TEST): tests/test_scroll_math.cpp src/button_state.hpp src/control.hpp src/scroll_math.hpp | $(BUILD_DIR)
 	$(CXX) $(COMMON_FLAGS) -O2 $(CXXFLAGS) tests/test_scroll_math.cpp \
 		-o $(TEST) $(LDFLAGS)
 
 test: $(TEST)
 	./$(TEST)
+	node tests/test_widget_model.js
+	bash tests/test_set_sensitivity.sh
 	bash tests/test_setup_omarchy.sh
 
 clean:

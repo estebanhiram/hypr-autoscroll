@@ -89,6 +89,37 @@ case "${1:-}" in
     menu)
         [[ "${2:-}" == "keybindings" && "${3:-}" == "--print" ]] || exit 2
         ;;
+    plugin)
+        case "${2:-}" in
+            list)
+                if [[ -e "${MOCK_STATE}/shell-installed" ]]; then
+                    if [[ -e "${MOCK_STATE}/shell-enabled" ]]; then
+                        enabled=true
+                    else
+                        enabled=false
+                    fi
+                    printf '[{"id":"io.github.estebanhiram.hypr-autoscroll","enabled":%s,"firstParty":false}]\n' "$enabled"
+                else
+                    printf '[]\n'
+                fi
+                ;;
+            add)
+                touch "${MOCK_STATE}/shell-installed"
+                ;;
+            update)
+                [[ -e "${MOCK_STATE}/shell-installed" ]] || exit 2
+                ;;
+            remove)
+                rm -f "${MOCK_STATE}/shell-installed" "${MOCK_STATE}/shell-enabled"
+                ;;
+            *) exit 2 ;;
+        esac
+        ;;
+    bar)
+        [[ "${2:-}" == "put" && "${3:-}" == "io.github.estebanhiram.hypr-autoscroll" ]] || exit 2
+        [[ -e "${MOCK_STATE}/shell-installed" ]] || exit 2
+        touch "${MOCK_STATE}/shell-enabled"
+        ;;
     *) exit 2 ;;
 esac
 EOF
@@ -113,16 +144,23 @@ run_setup --shortcut "SUPER + ALT + A"
 
 module="$TEST_HOME/.config/hypr/autoscroll.lua"
 main_config="$TEST_HOME/.config/hypr/hyprland.lua"
+sensitivity_config="$TEST_HOME/.config/hypr/autoscroll-sensitivity"
 
 [[ -f "$module" ]] || fail "managed module was not created"
 grep -Fq 'local autoscroll_shortcut = "SUPER + ALT + A"' "$module" ||
     fail "requested shortcut was not written"
 grep -Fq 'hl.exec_cmd("hyprpm reload")' "$module" ||
     fail "startup reload hook was not written"
+grep -Fq 'sensitivity = stored_autoscroll_sensitivity()' "$module" ||
+    fail "persisted sensitivity was not loaded"
+grep -Fxq '# Managed by hypr-autoscroll' "$sensitivity_config" ||
+    fail "managed sensitivity configuration was not created"
 [[ "$(grep -Fxc 'require("hypr.autoscroll")' "$main_config")" -eq 1 ]] ||
     fail "module require was not added exactly once"
 [[ -e "$MOCK_STATE/installed" && -e "$MOCK_STATE/enabled" ]] ||
     fail "plugin was not installed and enabled"
+[[ -e "$MOCK_STATE/shell-installed" && -e "$MOCK_STATE/shell-enabled" ]] ||
+    fail "Quattro shell widget was not installed and enabled"
 grep -Fq 'hyprpm add https://github.com/estebanhiram/hypr-autoscroll' "$MOCK_LOG" ||
     fail "canonical GitHub repository was not installed"
 
@@ -136,13 +174,19 @@ grep -Fq 'local autoscroll_shortcut = "SUPER + ALT + S"' "$module" ||
     fail "rerun attempted to add repository again"
 [[ "$(grep -Fc 'hyprpm enable ' "$MOCK_LOG")" -eq 1 ]] ||
     fail "rerun attempted to enable plugin again"
+[[ "$(grep -Fc 'omarchy plugin add ' "$MOCK_LOG")" -eq 1 ]] ||
+    fail "rerun attempted to add shell plugin again"
+[[ "$(grep -Fc 'omarchy plugin update ' "$MOCK_LOG")" -eq 1 ]] ||
+    fail "rerun did not update the installed shell plugin"
 
 run_setup --uninstall
 
 [[ ! -e "$module" ]] || fail "managed module was not removed"
+[[ ! -e "$sensitivity_config" ]] || fail "managed sensitivity configuration was not removed"
 ! grep -Fq 'require("hypr.autoscroll")' "$main_config" ||
     fail "module require was not removed"
 [[ ! -e "$MOCK_STATE/installed" ]] || fail "hyprpm repository was not removed"
+[[ ! -e "$MOCK_STATE/shell-installed" ]] || fail "Quattro shell widget was not removed"
 
 run_setup --uninstall
 

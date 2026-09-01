@@ -1,9 +1,11 @@
 #include "button_state.hpp"
+#include "control.hpp"
 #include "scroll_math.hpp"
 
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <format>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -60,6 +62,7 @@ namespace {
         bool                    middleModeEnabled      = false;
         bool                    middleModeConfigLoaded = false;
         bool                    lastConfiguredMode     = false;
+        double                  runtimeSensitivity     = Autoscroll::DEFAULT_SENSITIVITY;
         std::optional<uint32_t> swallowedButton;
         bool                    sentHorizontal = false;
         bool                    sentVertical   = false;
@@ -72,6 +75,7 @@ namespace {
         CHyprSignalListener     axisListener;
         CHyprSignalListener     focusListener;
         CHyprSignalListener     configListener;
+        SP<SHyprCtlCommand>     hyprctlCommand;
     } state;
 
     uint32_t eventTimeMs() {
@@ -166,7 +170,7 @@ namespace {
     Autoscroll::ScrollCurve currentCurve() {
         return {
             .deadZone     = config.deadZone->value(),
-            .sensitivity  = config.sensitivity->value(),
+            .sensitivity  = state.runtimeSensitivity,
             .acceleration = config.acceleration->value(),
             .maxSpeed     = config.maxSpeed->value(),
         };
@@ -292,6 +296,40 @@ namespace {
             return {};
 
         return {.success = false, .error = "expected one of: toggle, on, off, status"};
+    }
+
+    std::string controlStatus(const eHyprCtlOutputFormat format) {
+        if (format == FORMAT_JSON) {
+            return std::format(
+                R"({{"available":true,"enabled":{},"middleModeEnabled":{},"active":{},"sensitivity":{:.3f}}})",
+                config.enabled->value() ? "true" : "false", state.middleModeEnabled ? "true" : "false",
+                state.active ? "true" : "false", state.runtimeSensitivity);
+        }
+
+        return std::format("enabled: {}\nmiddle mode: {}\nautoscroll active: {}\nsensitivity: {:.3f}\n",
+                           config.enabled->value() ? "yes" : "no", state.middleModeEnabled ? "on" : "off",
+                           state.active ? "yes" : "no", state.runtimeSensitivity);
+    }
+
+    std::string controlError(const eHyprCtlOutputFormat format, const std::string& error) {
+        if (format == FORMAT_JSON)
+            return std::format(R"({{"error":"{}"}})", error);
+        return "error: " + error + "\n";
+    }
+
+    std::string hyprctlAutoscroll(const eHyprCtlOutputFormat format, const std::string request) {
+        const auto control = Autoscroll::parseControlRequest(request);
+
+        switch (control.action) {
+            case Autoscroll::ControlAction::Status: break;
+            case Autoscroll::ControlAction::Toggle: setMiddleMode(!state.middleModeEnabled, true); break;
+            case Autoscroll::ControlAction::Enable: setMiddleMode(true, true); break;
+            case Autoscroll::ControlAction::Disable: setMiddleMode(false, true); break;
+            case Autoscroll::ControlAction::SetSensitivity: state.runtimeSensitivity = control.sensitivity; break;
+            case Autoscroll::ControlAction::Invalid: return controlError(format, control.error);
+        }
+
+        return controlStatus(format);
     }
 
     int luaToggle(lua_State* lua) {
@@ -426,6 +464,8 @@ namespace {
             if (state.active && !config.enabled->value())
                 deactivate(true);
 
+            state.runtimeSensitivity = config.sensitivity->value();
+
             const bool configuredMode = config.directActivation->value();
             if (!state.middleModeConfigLoaded || configuredMode != state.lastConfiguredMode) {
                 state.middleModeConfigLoaded = true;
@@ -467,6 +507,11 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         throw std::runtime_error("hypr-autoscroll: failed to register middle-mode dispatcher");
     }
 
+    state.hyprctlCommand = HyprlandAPI::registerHyprCtlCommand(
+        pluginHandle, {.name = "hypr-autoscroll", .exact = false, .fn = hyprctlAutoscroll});
+    if (!state.hyprctlCommand)
+        throw std::runtime_error("hypr-autoscroll: failed to register hyprctl command");
+
     if (Config::mgr()->type() == Config::CONFIG_LUA &&
         !HyprlandAPI::addLuaFunction(pluginHandle, "hypr_autoscroll", "toggle", luaToggle)) {
         throw std::runtime_error("hypr-autoscroll: failed to register Lua function");
@@ -483,7 +528,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     registerListeners();
     HyprlandAPI::reloadConfig();
 
-    return {PLUGIN_NAME, "Windows-style middle-click autoscrolling", "hypr-autoscroll contributors", "0.2.0"};
+    return {PLUGIN_NAME, "Windows-style middle-click autoscrolling", "hypr-autoscroll contributors", "0.3.0"};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
@@ -494,6 +539,11 @@ APICALL EXPORT void PLUGIN_EXIT() {
     state.axisListener.reset();
     state.focusListener.reset();
     state.configListener.reset();
+
+    if (state.hyprctlCommand) {
+        HyprlandAPI::unregisterHyprCtlCommand(pluginHandle, state.hyprctlCommand);
+        state.hyprctlCommand.reset();
+    }
 
     if (state.timer) {
         g_pEventLoopManager->removeTimer(state.timer);

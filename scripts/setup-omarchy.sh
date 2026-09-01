@@ -4,10 +4,13 @@ set -euo pipefail
 
 readonly REPOSITORY_URL="https://github.com/estebanhiram/hypr-autoscroll"
 readonly PLUGIN_NAME="hypr-autoscroll"
+readonly SHELL_PLUGIN_ID="io.github.estebanhiram.hypr-autoscroll"
 readonly MINIMUM_OMARCHY_MAJOR=4
 readonly CONFIG_ROOT="${HOME}/.config/hypr"
 readonly MAIN_CONFIG="${CONFIG_ROOT}/hyprland.lua"
 readonly MODULE_CONFIG="${CONFIG_ROOT}/autoscroll.lua"
+readonly SENSITIVITY_CONFIG="${CONFIG_ROOT}/autoscroll-sensitivity"
+readonly SENSITIVITY_MARKER="# Managed by hypr-autoscroll"
 readonly REQUIRE_LINE='require("hypr.autoscroll")'
 
 shortcut="SUPER + A"
@@ -60,7 +63,7 @@ while (($# > 0)); do
     esac
 done
 
-for command in hyprpm hyprctl omarchy; do
+for command in git hyprpm hyprctl jq omarchy; do
     command -v "$command" >/dev/null 2>&1 || fail "required command not found: ${command}"
 done
 
@@ -99,6 +102,56 @@ remove_require_line() {
     temporary_file=""
 }
 
+remove_sensitivity_config() {
+    [[ -f "$SENSITIVITY_CONFIG" ]] || return 0
+    grep -Fxq "$SENSITIVITY_MARKER" "$SENSITIVITY_CONFIG" ||
+        fail "refusing to remove unmanaged file: ${SENSITIVITY_CONFIG}"
+
+    backup_file "$SENSITIVITY_CONFIG"
+    rm -- "$SENSITIVITY_CONFIG"
+}
+
+ensure_sensitivity_config() {
+    if [[ -e "$SENSITIVITY_CONFIG" ]]; then
+        grep -Fxq "$SENSITIVITY_MARKER" "$SENSITIVITY_CONFIG" ||
+            fail "refusing to overwrite unmanaged file: ${SENSITIVITY_CONFIG}"
+        return 0
+    fi
+
+    temporary_file="$(mktemp)"
+    printf '%s\n4.00\n' "$SENSITIVITY_MARKER" >"$temporary_file"
+    install -m 0644 "$temporary_file" "$SENSITIVITY_CONFIG"
+    rm -f -- "$temporary_file"
+    temporary_file=""
+}
+
+shell_plugin_is_installed() {
+    local plugin_list="$1"
+    jq -e --arg id "$SHELL_PLUGIN_ID" 'any(.[]; .id == $id and .firstParty == false)' \
+        <<<"$plugin_list" >/dev/null
+}
+
+install_shell_widget() {
+    local plugin_list
+    plugin_list="$(omarchy plugin list --json 2>/dev/null || printf '[]')"
+
+    if shell_plugin_is_installed "$plugin_list"; then
+        omarchy plugin update "$SHELL_PLUGIN_ID" --yes
+    else
+        omarchy plugin add "$REPOSITORY_URL" --yes
+    fi
+
+    omarchy bar put "$SHELL_PLUGIN_ID" --before omarchy.power
+}
+
+remove_shell_widget() {
+    local plugin_list
+    plugin_list="$(omarchy plugin list --json 2>/dev/null || printf '[]')"
+    if shell_plugin_is_installed "$plugin_list"; then
+        omarchy plugin remove "$SHELL_PLUGIN_ID" --yes
+    fi
+}
+
 validate_hyprland() {
     hyprctl reload >/dev/null
 
@@ -131,6 +184,7 @@ plugin_is_enabled() {
 }
 
 if [[ "$uninstall" == true ]]; then
+    remove_shell_widget
     remove_require_line
 
     if [[ -f "$MODULE_CONFIG" ]]; then
@@ -139,6 +193,8 @@ if [[ "$uninstall" == true ]]; then
         backup_file "$MODULE_CONFIG"
         rm -- "$MODULE_CONFIG"
     fi
+
+    remove_sensitivity_config
 
     list_output="$(hyprpm list 2>/dev/null || true)"
     if repository_is_installed "$list_output"; then
@@ -206,16 +262,35 @@ if [[ -f "$MODULE_CONFIG" ]]; then
     backup_file "$MODULE_CONFIG"
 fi
 
+ensure_sensitivity_config
+
 temporary_file="$(mktemp)"
 cat >"$temporary_file" <<EOF
 -- Managed by hypr-autoscroll's Omarchy setup script.
 -- Run the setup again with --shortcut to change this value.
 local autoscroll_shortcut = "${shortcut}"
 
+local function stored_autoscroll_sensitivity()
+  local file = io.open((os.getenv("HOME") or "") .. "/.config/hypr/autoscroll-sensitivity", "r")
+  if not file then return 4.0 end
+
+  local sensitivity = 4.0
+  for line in file:lines() do
+    local value = tonumber(line)
+    if value and value >= 0.1 and value <= 100.0 then
+      sensitivity = value
+      break
+    end
+  end
+  file:close()
+  return sensitivity
+end
+
 hl.config({
   plugin = {
     hypr_autoscroll = {
       direct_activation = false,
+      sensitivity = stored_autoscroll_sensitivity(),
     },
   },
 })
@@ -241,5 +316,6 @@ fi
 
 hyprpm reload
 validate_hyprland
+install_shell_widget
 
-printf 'hypr-autoscroll is ready. Toggle shortcut: %s\n' "$shortcut"
+printf 'hypr-autoscroll is ready. Toggle shortcut: %s. Quattro bar widget added.\n' "$shortcut"

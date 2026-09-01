@@ -1,4 +1,5 @@
 #include "../src/button_state.hpp"
+#include "../src/control.hpp"
 #include "../src/scroll_math.hpp"
 
 #include <cassert>
@@ -14,6 +15,25 @@ namespace {
 } // namespace
 
 int main() {
+    const auto statusRequest = Autoscroll::parseControlRequest("hypr-autoscroll");
+    assert(statusRequest.action == Autoscroll::ControlAction::Status);
+
+    const auto toggleRequest = Autoscroll::parseControlRequest("hypr-autoscroll toggle");
+    assert(toggleRequest.action == Autoscroll::ControlAction::Toggle);
+
+    const auto sensitivityRequest = Autoscroll::parseControlRequest("hypr-autoscroll sensitivity 5.25");
+    assert(sensitivityRequest.action == Autoscroll::ControlAction::SetSensitivity);
+    assert(near(sensitivityRequest.sensitivity, 5.25));
+
+    const auto invalidSensitivity = Autoscroll::parseControlRequest("hypr-autoscroll sensitivity 101");
+    assert(invalidSensitivity.action == Autoscroll::ControlAction::Invalid);
+
+    const auto nanSensitivity = Autoscroll::parseControlRequest("hypr-autoscroll sensitivity nan");
+    assert(nanSensitivity.action == Autoscroll::ControlAction::Invalid);
+
+    const auto infiniteSensitivity = Autoscroll::parseControlRequest("hypr-autoscroll sensitivity inf");
+    assert(infiniteSensitivity.action == Autoscroll::ControlAction::Invalid);
+
     const auto unrelatedButton = Autoscroll::decideSwallowedButtonEvent(false, false, false, false);
     assert(!unrelatedButton.cancelEvent);
     assert(!unrelatedButton.clearButton);

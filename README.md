@@ -24,6 +24,7 @@ Buy me a coffee. https://donate.stripe.com/aFa6oIgw87pIbtk7FVe3e03
 - Fixed scroll target while the pointer moves
 - Native `all-scroll` cursor while scrolling
 - Shortcut-controlled middle-button mode
+- Native Omarchy Quattro bar widget with an on/off switch and sensitivity slider
 - Normal middle-button behavior when the mode is disabled
 - Automatic exit on another click or physical wheel input
 - Pointer-constrained applications such as games are ignored
@@ -44,8 +45,8 @@ plugin revision because Hyprland does not guarantee plugin ABI compatibility.
 
 ### Automatic Omarchy Quattro setup
 
-Omarchy Quattro users can install the plugin, configure startup loading, and
-register an Omarchy-native shortcut with one command:
+Omarchy Quattro users can install the plugin, configure startup loading,
+register an Omarchy-native shortcut, and add the bar widget with one command:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/estebanhiram/hypr-autoscroll/main/scripts/setup-omarchy.sh)
@@ -58,11 +59,27 @@ bash <(curl -fsSL https://raw.githubusercontent.com/estebanhiram/hypr-autoscroll
   --shortcut "SUPER + ALT + A"
 ```
 
-The script verifies that Omarchy Quattro is installed, limits its direct
-configuration changes to `~/.config/hypr/`, creates backups before changing
-existing files, refuses conflicting shortcuts or unmanaged configuration, and
-can be safely run again. Review [`setup-omarchy.sh`](scripts/setup-omarchy.sh)
-before running it if desired.
+The script verifies that Omarchy Quattro is installed, keeps Hyprland changes
+under `~/.config/hypr/`, and installs the shell widget through Omarchy's plugin
+commands. It creates backups before changing existing files, refuses
+conflicting shortcuts or unmanaged configuration, and can be safely run again.
+Review [`setup-omarchy.sh`](scripts/setup-omarchy.sh) before running it if
+desired.
+
+#### Quattro bar widget
+
+The mouse icon is placed near the other system controls on the right side of
+the bar:
+
+- Left-click opens the popup. Use its switch to enable or disable
+  middle-button autoscroll mode.
+- Drag the sensitivity slider from `0.5×` to `10×`; the setting persists across
+  logins.
+- Right-click or middle-click toggles the mode immediately.
+- Scroll over the bar icon to adjust sensitivity in `0.25×` steps.
+
+The icon is dim while normal middle-click behavior is active and highlighted
+while autoscroll mode is enabled. The popup and shortcut stay synchronized.
 
 To remove the managed configuration and plugin:
 
@@ -71,12 +88,22 @@ bash <(curl -fsSL https://raw.githubusercontent.com/estebanhiram/hypr-autoscroll
   --uninstall
 ```
 
+This also removes the Quattro shell widget and its managed sensitivity file.
+
 ### Manual hyprpm setup
 
 ```bash
 hyprpm add https://github.com/estebanhiram/hypr-autoscroll
 hyprpm enable hypr-autoscroll
 hyprpm reload
+```
+
+On Omarchy Quattro, install the shell widget separately after loading the
+Hyprland plugin:
+
+```bash
+omarchy plugin add https://github.com/estebanhiram/hypr-autoscroll --yes
+omarchy bar put io.github.estebanhiram.hypr-autoscroll --before omarchy.power
 ```
 
 To load enabled plugins when Hyprland starts, add the following to your Lua
@@ -210,6 +237,12 @@ hyprpm remove hypr-autoscroll
 hyprpm reload
 ```
 
+If the Quattro widget was installed manually, remove it with:
+
+```bash
+omarchy plugin remove io.github.estebanhiram.hypr-autoscroll --yes
+```
+
 Keep your startup `hyprpm reload` command if you use other Hyprland plugins.
 
 If loaded from a manual build, also remove its `hl.plugin.load(...)` or legacy
@@ -272,6 +305,25 @@ bind = SUPER, A, hypr-autoscroll:middle-mode, toggle
 ```
 
 ## Commands
+
+### Status and Quattro controls
+
+The plugin registers a `hyprctl` command used by the Quattro widget. Query its
+current state as JSON:
+
+```bash
+hyprctl -j hypr-autoscroll
+```
+
+Toggle middle-button mode or update the live sensitivity:
+
+```bash
+hyprctl hypr-autoscroll toggle
+hyprctl hypr-autoscroll sensitivity 5.25
+```
+
+Sensitivity changes made through the Quattro widget are also saved to
+`~/.config/hypr/autoscroll-sensitivity` and restored at login.
 
 ### Middle-button mode
 
