@@ -294,11 +294,13 @@ local function stored_autoscroll_sensitivity()
   return sensitivity
 end
 
+local autoscroll_sensitivity = stored_autoscroll_sensitivity()
+
 hl.config({
   plugin = {
     hypr_autoscroll = {
       direct_activation = false,
-      sensitivity = stored_autoscroll_sensitivity(),
+      sensitivity = autoscroll_sensitivity,
     },
   },
 })
@@ -310,7 +312,7 @@ o.bind(autoscroll_shortcut, "Toggle middle-button autoscroll", function()
 end)
 
 hl.on("hyprland.start", function()
-  hl.exec_cmd("hyprpm reload")
+  hl.exec_cmd("hyprpm reload && hyprctl hypr-autoscroll off && hyprctl hypr-autoscroll sensitivity " .. autoscroll_sensitivity)
 end)
 EOF
 install -m 0644 "$temporary_file" "$MODULE_CONFIG"

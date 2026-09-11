@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.estebanhiram.hypr-autoscroll",
   "name": "Hypr Autoscroll",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": "hypr-autoscroll contributors",
   "description": "Toggle middle-button autoscroll and adjust its sensitivity",
   "kinds": [

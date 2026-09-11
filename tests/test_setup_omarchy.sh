@@ -152,9 +152,9 @@ sensitivity_config="$TEST_HOME/.config/hypr/autoscroll-sensitivity"
 [[ -f "$module" ]] || fail "managed module was not created"
 grep -Fq 'local autoscroll_shortcut = "SUPER + ALT + A"' "$module" ||
     fail "requested shortcut was not written"
-grep -Fq 'hl.exec_cmd("hyprpm reload")' "$module" ||
-    fail "startup reload hook was not written"
-grep -Fq 'sensitivity = stored_autoscroll_sensitivity()' "$module" ||
+grep -Fq 'hl.exec_cmd("hyprpm reload && hyprctl hypr-autoscroll off && hyprctl hypr-autoscroll sensitivity " .. autoscroll_sensitivity)' "$module" ||
+    fail "startup reload and state initialization hook was not written"
+grep -Fq 'sensitivity = autoscroll_sensitivity' "$module" ||
     fail "persisted sensitivity was not loaded"
 grep -Fxq '# Managed by hypr-autoscroll' "$sensitivity_config" ||
     fail "managed sensitivity configuration was not created"
