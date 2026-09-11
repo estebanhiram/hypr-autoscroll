@@ -179,11 +179,7 @@ hl.config({
   },
 })
 
-hl.bind(autoscroll_shortcut, function()
-  if hl.plugin.hypr_autoscroll then
-    hl.plugin.hypr_autoscroll.middle_mode("toggle")
-  end
-end, {
+hl.bind(autoscroll_shortcut, hl.dsp.exec_cmd("hyprctl hypr-autoscroll toggle"), {
   description = "Toggle middle-button autoscroll",
 })
 ```
@@ -206,11 +202,7 @@ Omarchy-native binding in `~/.config/hypr/bindings.lua`:
 ```lua
 local autoscroll_shortcut = "SUPER + A" -- Change this to any free combination.
 
-o.bind(autoscroll_shortcut, "Toggle middle-button autoscroll", function()
-  if hl.plugin.hypr_autoscroll then
-    hl.plugin.hypr_autoscroll.middle_mode("toggle")
-  end
-end)
+o.bind(autoscroll_shortcut, "Toggle middle-button autoscroll", "hyprctl hypr-autoscroll toggle")
 ```
 
 The description makes the shortcut appear in Omarchy's keybindings menu. Keep

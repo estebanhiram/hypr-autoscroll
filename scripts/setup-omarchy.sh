@@ -305,11 +305,7 @@ hl.config({
   },
 })
 
-o.bind(autoscroll_shortcut, "Toggle middle-button autoscroll", function()
-  if hl.plugin.hypr_autoscroll then
-    hl.plugin.hypr_autoscroll.middle_mode("toggle")
-  end
-end)
+o.bind(autoscroll_shortcut, "Toggle middle-button autoscroll", "hyprctl hypr-autoscroll toggle")
 
 hl.on("hyprland.start", function()
   hl.exec_cmd("hyprpm reload && hyprctl hypr-autoscroll off && hyprctl hypr-autoscroll sensitivity " .. autoscroll_sensitivity)

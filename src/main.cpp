@@ -528,7 +528,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     registerListeners();
     HyprlandAPI::reloadConfig();
 
-    return {PLUGIN_NAME, "Windows-style middle-click autoscrolling", "hypr-autoscroll contributors", "0.3.1"};
+    return {PLUGIN_NAME, "Windows-style middle-click autoscrolling", "hypr-autoscroll contributors", "0.3.2"};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {

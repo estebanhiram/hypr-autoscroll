@@ -156,6 +156,8 @@ grep -Fq 'hl.exec_cmd("hyprpm reload && hyprctl hypr-autoscroll off && hyprctl h
     fail "startup reload and state initialization hook was not written"
 grep -Fq 'sensitivity = autoscroll_sensitivity' "$module" ||
     fail "persisted sensitivity was not loaded"
+grep -Fq 'o.bind(autoscroll_shortcut, "Toggle middle-button autoscroll", "hyprctl hypr-autoscroll toggle")' "$module" ||
+    fail "stable hyprctl shortcut was not written"
 grep -Fxq '# Managed by hypr-autoscroll' "$sensitivity_config" ||
     fail "managed sensitivity configuration was not created"
 [[ "$(grep -Fxc 'require("hypr.autoscroll")' "$main_config")" -eq 1 ]] ||
