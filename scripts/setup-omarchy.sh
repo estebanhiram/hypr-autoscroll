@@ -63,9 +63,13 @@ while (($# > 0)); do
     esac
 done
 
-for command in git hyprpm hyprctl jq omarchy; do
+for command in git hyprctl jq omarchy; do
     command -v "$command" >/dev/null 2>&1 || fail "required command not found: ${command}"
 done
+
+if ! command -v hyprpm >/dev/null 2>&1; then
+    fail "required command not found: hyprpm; recent Hyprland packages no longer bundle it. Install it with 'omarchy pkg add hyprpm' (or 'sudo pacman -S hyprpm') and run the setup again"
+fi
 
 omarchy_version="$(omarchy version 2>/dev/null)" || fail "could not determine the Omarchy version"
 if [[ "$omarchy_version" =~ ([0-9]+)\. ]]; then

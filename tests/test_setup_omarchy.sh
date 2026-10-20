@@ -143,6 +143,20 @@ if MOCK_OMARCHY_VERSION="3.8.4-1" run_setup 2>/dev/null; then
 fi
 [[ ! -e "$MOCK_STATE/installed" ]] || fail "version check happened after plugin installation"
 
+restricted_bin="${TEST_ROOT}/bin-without-hyprpm"
+mkdir -p "$restricted_bin"
+ln -s -- "$(command -v git)" "$restricted_bin/git"
+ln -s -- "$(command -v jq)" "$restricted_bin/jq"
+ln -s -- "$MOCK_BIN/hyprctl" "$restricted_bin/hyprctl"
+ln -s -- "$MOCK_BIN/omarchy" "$restricted_bin/omarchy"
+
+if missing_output="$(env HOME="$TEST_HOME" PATH="$restricted_bin" "$(command -v bash)" "$PROJECT_ROOT/scripts/setup-omarchy.sh" 2>&1)"; then
+    fail "setup ran without hyprpm"
+fi
+grep -Fq 'omarchy pkg add hyprpm' <<<"$missing_output" ||
+    fail "missing hyprpm did not suggest installing the package"
+[[ ! -e "$MOCK_STATE/installed" ]] || fail "hyprpm check happened after plugin installation"
+
 run_setup --shortcut "SUPER + ALT + A"
 
 module="$TEST_HOME/.config/hypr/autoscroll.lua"

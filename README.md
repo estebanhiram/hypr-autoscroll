@@ -37,6 +37,11 @@ Buy me a coffee. https://donate.stripe.com/aFa6oIgw87pIbtk7FVe3e03
 - Omarchy Quattro (version 4 or newer) for the automatic Omarchy setup
 - A C++23 compiler, Make, and Hyprland headers for manual installation
 
+Since Hyprland 0.56, Arch-based distributions (including Omarchy) ship `hyprpm`
+as a package separate from `hyprland`. Install it with `omarchy pkg add hyprpm`
+or `sudo pacman -S hyprpm`; without it, the plugin cannot load and Hyprland
+reports its configuration keys as unknown.
+
 Omarchy 4.0.2 with Hyprland 0.56.2 is currently verified, along with standalone
 Hyprland 0.55.2 and 0.56.0. Other Hyprland releases may require a matching
 plugin revision because Hyprland does not guarantee plugin ABI compatibility.
@@ -395,6 +400,14 @@ ctest --test-dir build-cmake --output-on-failure
   may vary slightly between toolkits.
 
 ## Troubleshooting
+
+If plugin loading suddenly stopped working after a system update, check that
+`hyprpm` is still installed. Recent Hyprland packages on Arch-based systems no
+longer bundle it:
+
+```bash
+command -v hyprpm || omarchy pkg add hyprpm
+```
 
 If `hyprpm add` reports that its headers are outdated, refresh its cache and
 retry:
